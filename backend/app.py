@@ -7,7 +7,7 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 from datetime import timedelta
 from msal import SerializableTokenCache
-from auth.msal_auth import load_token_cache, save_token_cache, build_msal_app
+from msal_auth import load_token_cache, save_token_cache, build_msal_app
 from graph_api import (
     search_all_files,
     check_file_access,
