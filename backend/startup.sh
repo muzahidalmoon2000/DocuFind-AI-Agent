@@ -8,4 +8,4 @@ pip install -r requirements.txt
 PORT=${PORT:-5000}
 
 echo "🚀 Starting Gunicorn server on port $PORT..."
-exec gunicorn app:app --bind 0.0.0.0:$PORT
+exec gunicorn backend.app:app --bind 0.0.0.0:$PORT
