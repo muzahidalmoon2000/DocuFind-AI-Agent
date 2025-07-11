@@ -1,0 +1,9 @@
+Flask
+gunicorn
+requests
+sentence-transformers
+msal
+python-dotenv
+openai
+Flask-Session
+SQLAlchemy>=1.4
