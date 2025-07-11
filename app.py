@@ -7,7 +7,7 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 from datetime import timedelta
 from msal import SerializableTokenCache
-from msal_auth import load_token_cache, save_token_cache, build_msal_app
+from auth.msal_auth import load_token_cache, save_token_cache, build_msal_app
 from graph_api import (
     search_all_files,
     check_file_access,
@@ -27,7 +27,7 @@ from db import (
 load_dotenv()
 logging.basicConfig(level=logging.INFO)
 
-app = Flask(__name__, static_folder="../frontend/dist", static_url_path="/")
+app = Flask(__name__, static_folder="./frontend/dist", static_url_path="/")
 app.secret_key = os.getenv("CLIENT_SECRET")
 CORS(app, supports_credentials=True)
 app.config["SESSION_TYPE"] = "filesystem"
@@ -268,15 +268,12 @@ def is_number_selection(text):
 
 @app.route("/", defaults={"path": ""})
 @app.route("/<path:path>")
-def serve_react(path):
-    if not session.get("user_email"):
-        return redirect("/login")
-
-    full_path = os.path.join(app.static_folder, path)
-    if path != "" and os.path.exists(full_path):
+def serve_react_app(path):
+    if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
         return send_from_directory(app.static_folder, path)
     else:
         return send_from_directory(app.static_folder, "index.html")
+
 
 if __name__ == "__main__":
     app.run(debug=True)
