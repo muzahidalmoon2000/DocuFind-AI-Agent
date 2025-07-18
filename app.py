@@ -100,21 +100,18 @@ def check_login():
 # 📚 Document APIs
 @app.route("/api/hr_documents")
 def hr_documents():
-    docs_path = os.path.join("knowledge_base", "documents")
-    metadata_path = os.path.join("knowledge_base", "index_metadata.json")
     metadata = {}
-
-    if os.path.exists(metadata_path):
+    if os.path.exists(META_FILE):
         try:
-            with open(metadata_path, "r") as f:
+            with open(META_FILE, "r") as f:
                 metadata = json.load(f)
         except Exception:
             metadata = {}
 
     files = []
-    if os.path.exists(docs_path):
-        for fname in os.listdir(docs_path):
-            fpath = os.path.join(docs_path, fname)
+    if os.path.exists(DOCS_DIR):
+        for fname in os.listdir(DOCS_DIR):
+            fpath = os.path.join(DOCS_DIR, fname)
             if os.path.isfile(fpath):
                 size_kb = round(os.path.getsize(fpath) / 1024, 2)
                 date_str = datetime.fromtimestamp(os.path.getmtime(fpath)).strftime("%Y-%m-%d %H:%M")
@@ -144,16 +141,14 @@ def upload_hr_doc():
     if not filename.lower().endswith(allowed_exts):
         return jsonify({"error": "Unsupported format"}), 400
 
-    save_path = os.path.join("knowledge_base", "documents", filename)
-    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    os.makedirs(DOCS_DIR, exist_ok=True)
+    save_path = os.path.join(DOCS_DIR, filename)
     file.save(save_path)
 
-    # Store uploader info
-    metadata_path = os.path.join("knowledge_base", "index_metadata.json")
     metadata = {}
-    if os.path.exists(metadata_path):
+    if os.path.exists(META_FILE):
         try:
-            with open(metadata_path, "r") as f:
+            with open(META_FILE, "r") as f:
                 metadata = json.load(f)
         except Exception:
             metadata = {}
@@ -164,7 +159,7 @@ def upload_hr_doc():
     }
 
     try:
-        with open(metadata_path, "w") as f:
+        with open(META_FILE, "w") as f:
             json.dump(metadata, f, indent=2)
     except Exception as e:
         logging.warning(f"⚠️ Failed to write metadata: {e}")
@@ -174,6 +169,36 @@ def upload_hr_doc():
         return jsonify({"message": "✅ File uploaded and indexed."})
     except Exception as e:
         return jsonify({"error": f"❌ Indexing failed: {e}"}), 500
+
+@app.route("/api/hr_documents", methods=["DELETE"])
+def delete_hr_doc():
+    user_email = session.get("user_email")
+    if not is_hr_admin(user_email):
+        return jsonify({"error": "❌ Unauthorized"}), 403
+
+    data = request.json
+    filename = data.get("filename")
+    if not filename:
+        return jsonify({"error": "No filename provided"}), 400
+
+    doc_path = os.path.join(DOCS_DIR, filename)
+
+    try:
+        if os.path.exists(doc_path):
+            os.remove(doc_path)
+
+        if os.path.exists(META_FILE):
+            with open(META_FILE, "r") as f:
+                metadata = json.load(f)
+            metadata.pop(filename, None)
+            with open(META_FILE, "w") as f:
+                json.dump(metadata, f, indent=2)
+
+        build_index()
+        return jsonify({"message": f"✅ '{filename}' deleted and index updated."})
+    except Exception as e:
+        logging.exception("❌ Failed to delete document:")
+        return jsonify({"error": f"❌ Deletion failed: {e}"}), 500
 
 # 🔄 Chat session APIs
 @app.route("/api/session_state")
